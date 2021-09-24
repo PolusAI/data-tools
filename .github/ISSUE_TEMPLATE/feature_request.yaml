@@ -1,0 +1,41 @@
+name: Feature Request
+description: It would be really cool if x did y...
+title: "[Feature]: "
+labels: ["feature", "triage"]
+assignees:
+  - octocat
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Tool
+      description: Which of Polus Data Tools it refers to?
+      options:
+        - WIPP Client
+    validations:
+      required: true
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: Please provide a use case to help us understand your request in context
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solution
+      description: Please describe your ideal solution
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Please describe any alternatives you've considered, even if you've dismissed them
+    validations:
+      required: false
