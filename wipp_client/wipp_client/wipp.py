@@ -70,13 +70,24 @@ class Wipp:
         api_is_live = self.check_api_is_live()
         if api_is_live["code"] != 200:
             raise Exception(api_is_live["data"])
+        
+        # Authorization headers for Keycloak
+        self._auth_headers = None
 
     def __str__(self):
         return f"WIPP API @ {self.api_route}"
 
     def __repr__(self):
         return str(self)
-
+    
+    @property
+    def auth_headers(self):
+        return self._auth_headers
+    
+    @auth_headers.setter
+    def auth_headers(self, keycloak_token):
+        self._auth_headers = {"Authorization": f"Bearer {keycloak_token}"}
+    
     def build_request_url(
         self,
         plural: str,
@@ -106,7 +117,7 @@ class Wipp:
     def check_api_is_live(self) -> dict:
         """Check if WIPP API is live"""
         try:
-            r = requests.get(self.api_route, timeout=1)
+            r = requests.get(self.api_route, timeout=1, headers=self._auth_headers)
         except:
             return {
                 "code": 500,
@@ -128,7 +139,7 @@ class Wipp:
     ) -> tuple:
         """Get tuple with WIPP Collections' number of pages and page size"""
 
-        r = requests.get(self.build_request_url(plural, extra_path, extra_query))
+        r = requests.get(self.build_request_url(plural, extra_path, extra_query), headers=self._auth_headers)
         if r.status_code == 200:
             response = r.json()
             total_pages = response["page"]["totalPages"]
@@ -150,7 +161,8 @@ class Wipp:
         """
 
         r = requests.get(
-            self.build_request_url(plural, extra_path, {"page": index} | extra_query)
+            self.build_request_url(plural, extra_path, {"page": index} | extra_query), 
+            headers=self._auth_headers
         )
         if r.status_code == 200:
             collections_page = r.json()["_embedded"][plural]
