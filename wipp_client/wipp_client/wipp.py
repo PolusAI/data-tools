@@ -51,7 +51,7 @@ class Wipp:
     """Class for interfacing with WIPP API"""
 
     def __init__(self):
-        """Wipp class constructor
+        """WIPP client class constructor
         Constructor does not take any arguments directly, but rather reads them from environment variables
         """
 
@@ -67,6 +67,10 @@ class Wipp:
         except:
             raise ValueError("WIPP API URL is not valid")
 
+        api_is_live = self.check_api_is_live()
+        if api_is_live["code"] != 200:
+            raise Exception(api_is_live["data"])
+
     def __str__(self):
         return f"WIPP API @ {self.api_route}"
 
@@ -79,6 +83,14 @@ class Wipp:
         extra_path: Union[str, bytes, os.PathLike] = "",
         extra_query: dict = {},
     ):
+        """
+        Build request URL for WIPP API
+        
+        Keyword arguments:
+        plural -- plural of the resource (such as "imagesCollections")
+        extra_path -- extra path to be added to the request URL (such as "search/findByNameContainingIgnoreCase")
+        extra_query -- extra query parameters to be added to the request URL (such as {"name": "test"})
+        """
         parsed_url = self.parsed_api_route
 
         parsed_query = parse_qs(parsed_url.query)
@@ -92,6 +104,7 @@ class Wipp:
         return urlunparse(parsed_url)
 
     def check_api_is_live(self) -> dict:
+        """Check if WIPP API is live"""
         try:
             r = requests.get(self.api_route, timeout=1)
         except:
