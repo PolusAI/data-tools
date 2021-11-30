@@ -97,12 +97,15 @@ class Wipp:
         except:
             return {
                 "code": 500,
-                "data": "WIPP API is not available, so JupyterLab-WIPP extension will not be loaded",
+                "data": "WIPP API is not available",
             }
 
         if r.status_code == 200:
             if "_links" in r.json():
-                return {"code": 200, "data": "JupyterLab-WIPP extension is loaded"}
+                return {
+                    "code": 200, 
+                    "data": "WIPP API is available",
+                }
 
     def get_collections_summary(
         self,
