@@ -4,13 +4,24 @@
 [![Documentation](https://github.com/PolusAI/data-tools/wipp_client/workflows/Documentation/badge.svg)](https://ktaletsk.github.io/wipp_client/)
 [![Code Coverage](https://codecov.io/gh/PolusAI/data-tools/wipp_client/branch/main/graph/badge.svg)](https://codecov.io/gh/ktaletsk/wipp_client)
 
-WIPP API Python client
+WIPP API Python client library
 
 ---
 
 ## Features
 
--   Access, search and manipulate WIPP objects from Python
+-   Search and list all WIPP entities (such as collections, plugins, jobs and workflows)
+-   List all members of the image and CSV colections
+<!-- -   Create WIPP plugins
+-   Access protected APIs with Keycloak token (has to be obtained externally) -->
+
+## Installation
+
+<!-- **Stable Release:** `pip install wipp_client`<br>
+**Development Head:** `pip install git+https://github.com/polusai/wipp_client.git#egg=wipp_client&subdirectory=wipp_client` -->
+- Clone the repo
+- Checkout to the branch of interest
+- Intall the library `pip install wipp_client/`
 
 ## Quick Start
 
@@ -20,18 +31,33 @@ export WIPP_API_INTERNAL_URL=http://wipp.url.com/api
 ```
 where `wipp.url.com` must be replaced with url of your WIPP instance.
 
+Try the following commands in Python REPL (`python`) or 
+include them in a Python file or Jupyter notebook.
+CLI is not provided at this point.
 
 ```python
 from wipp_client import Wipp
 
 w = Wipp()
-w.search_image_collections("ratBrain")
+
+# Search image collections
+collections = w.search_image_collections("ratBrain")
+for c in collections:
+    print(c)
+
+# Get list of images in the image collection
+images = w.get_image_collections_images(collections[0].id)
+for i in images:
+    print(i)
+
+# Search CSV collections
+csv_collections = w.search_csv_collections("covid")
+for csvc in csv_collections:
+    print(csvc)
+
+# Get list of CSV files in the CSV collection
+w.get_csv_collections_csv_files(csv_collections[0].id)
 ```
-
-## Installation
-
-**Stable Release:** `pip install wipp_client`<br>
-**Development Head:** `pip install git+https://github.com/polusai/wipp_client.git#egg=wipp_client&subdirectory=wipp_client`
 
 ## Documentation
 
