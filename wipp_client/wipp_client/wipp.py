@@ -35,7 +35,7 @@ class WippAbstractCollection(WippEntity):
 
         self.id = self.json["id"]
         self.name = self.json["name"]
-        self.creationDate = self.json["creationDate"]
+        self.creationDate = self.json.get("creationDate", None)
         self.locked = self.json["locked"]
         self.sourceJob = self.json["sourceJob"]
         
@@ -124,6 +124,24 @@ class WippCsv(WippEntity):
 
     def __repr__(self):
         return str(self)
+
+class WippGenericDataCollection(WippAbstractCollection):
+    """Class for holding generic WIPP Collection"""
+
+    def __init__(self, json):
+        super().__init__(json)
+        
+        self.description: str = self.json["description"]
+        self.fileTotalSize: int = self.json["fileTotalSize"]
+        self.metadata: str = self.json["metadata"]
+        self.numberOfFiles: int = self.json["numberOfFiles"]
+        self.type: str = self.json["type"]
+
+        self.data = []
+    
+    def __iter__(self):
+        for data in self.data:
+            yield data
 
 class WippPlugin(WippEntity):
     """Class for holding WIPP Plugin"""
@@ -298,6 +316,8 @@ class Wipp:
                 return [WippCsvCollection(entity) for entity in entities_page]
             elif plural == "csv":
                 return [WippCsv(entity) for entity in entities_page]
+            elif plural == "genericDatas":
+                return [WippGenericDataCollection(entity) for entity in entities_page]
             elif plural == "plugins":
                 return [WippPlugin(entity) for entity in entities_page]
             else:
