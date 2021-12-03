@@ -125,6 +125,34 @@ class WippCsv(WippEntity):
     def __repr__(self):
         return str(self)
 
+class WippPlugin(WippEntity):
+    """Class for holding WIPP Plugin"""
+
+    def __init__(self, json):
+        super().__init__(json)
+
+        self.author: str = self.json["author"]
+        self.citation: str = self.json["citation"]
+        self.container_id: str = self.json["containerId"]
+        self.creation_date: str = self.json.get("creationDate", None)
+        self.description: str = self.json["description"]
+        self.id: str = self.json.get("id", None)
+        self.inputs: list = self.json["inputs"]
+        self.institution: str = self.json["institution"]
+        self.name: str = self.json["name"]
+        self.outputs: list = self.json["outputs"]
+        self.repository: str = self.json["repository"]
+        self.title: str = self.json["title"]
+        self.ui: list = self.json["ui"]
+        self.version: str = self.json["version"]
+        self.website: str = self.json["website"]
+    
+    def __str__(self):
+        return f"{self.id}\t{self.name}\t{self.version}"
+
+    def __repr__(self):
+        return str(self)
+
 # TODO: Add more classes describing WIPP entities
 
 
@@ -203,7 +231,7 @@ class Wipp:
     def check_api_is_live(self) -> dict:
         """Check if WIPP API is live"""
         try:
-            r = requests.get(self.api_route, timeout=1, headers=self._auth_headers)
+            r = requests.get(self.api_route, timeout=1)
         except:
             return {
                 "code": 500,
@@ -270,6 +298,8 @@ class Wipp:
                 return [WippCsvCollection(entity) for entity in entities_page]
             elif plural == "csv":
                 return [WippCsv(entity) for entity in entities_page]
+            elif plural == "plugins":
+                return [WippPlugin(entity) for entity in entities_page]
             else:
                 return [WippEntity(entity) for entity in entities_page]
 
@@ -524,8 +554,7 @@ class Wipp:
             "workflows",
             path_suffix="search/findByNameContainingIgnoreCase",
             extra_query={"name": name}
-        )
-        
+        )        
 
     # Image Collection methods
     def get_image_collections_images(self, collection_id: str) -> list[WippImage]:
@@ -536,3 +565,19 @@ class Wipp:
     def get_csv_collections_csv_files(self, collection_id: str) -> list[WippCsv]:
         """Get list of all CSV files in a WIPP CSV Collection"""
         return self.get_entities("csv", path_prefix="csvCollections/"+collection_id)
+    
+    # Plugin methods
+    def create_plugin(self, plugin: WippPlugin):
+        r = requests.post(
+            self.build_request_url("plugins"),
+            json=plugin.json
+        )
+        if r.status_code == 201:
+            return WippPlugin(r.json())
+    
+    def delete_plugin(self, plugin_id: str):
+        r = requests.delete(
+            self.build_request_url("plugins/"+plugin_id)
+        )
+        if r.status_code == 204:
+            log.info("Plugin deleted")
