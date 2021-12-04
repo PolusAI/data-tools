@@ -36,10 +36,10 @@ class WippAbstractCollection(WippEntity):
         self.id = self.json["id"]
         self.name = self.json["name"]
         self.creationDate = self.json.get("creationDate", None)
-        self.locked = self.json["locked"]
+        self.locked = self.json["locked"] # Only present in the old version of the API
         self.sourceJob = self.json["sourceJob"]
         
-        # Not supported in CI version of WIPP yet
+        # Only supported in the new version of the API
         # self.owner = self.json["owner"]
         # self.publiclyShared = self.json["publiclyShared"]
 
@@ -142,6 +142,22 @@ class WippGenericDataCollection(WippAbstractCollection):
     def __iter__(self):
         for data in self.data:
             yield data
+
+class WippGenericDataFile(WippEntity):
+    """Class for holding WIPP Generic Data File"""
+
+    def __init__(self, json):
+        super().__init__(json)
+
+        self.fileName: str = self.json["fileName"]
+        self.originalFileName: str = self.json["originalFileName"]
+        self.fileSize: int = self.json["fileSize"]
+    
+    def __str__(self):
+        return f"{self.fileName}\t{self.fileSize}"
+
+    def __repr__(self):
+        return str(self)
 
 class WippPlugin(WippEntity):
     """Class for holding WIPP Plugin"""
@@ -301,9 +317,13 @@ class Wipp:
         if r.status_code == 200:
             
             # Fix for inconsistent plural names in CSV
+            # See https://github.com/usnistgov/WIPP-backend/issues/176
+            # TODO: Remove this when WIPP API is fixed
             key = plural
             if plural == "csv":
                 key = "csvs"
+            elif plural == "genericFile":
+                key = "genericFiles"
 
             entities_page = r.json()["_embedded"][key]
 
@@ -318,6 +338,8 @@ class Wipp:
                 return [WippCsv(entity) for entity in entities_page]
             elif plural == "genericDatas":
                 return [WippGenericDataCollection(entity) for entity in entities_page]
+            elif plural == "genericFile":
+                return [WippGenericDataFile(entity) for entity in entities_page]
             elif plural == "plugins":
                 return [WippPlugin(entity) for entity in entities_page]
             else:
@@ -585,6 +607,11 @@ class Wipp:
     def get_csv_collections_csv_files(self, collection_id: str) -> list[WippCsv]:
         """Get list of all CSV files in a WIPP CSV Collection"""
         return self.get_entities("csv", path_prefix="csvCollections/"+collection_id)
+    
+    #Generic Data methods
+    def get_generic_data_files(self, generic_data_id: str) -> list[WippGenericDataFile]:
+        """Get list of all files in a WIPP Generic Data"""
+        return self.get_entities("genericFile", path_prefix="genericDatas/"+generic_data_id)
     
     # Plugin methods
     def create_plugin(self, plugin: WippPlugin):
