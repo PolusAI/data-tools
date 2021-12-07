@@ -397,6 +397,47 @@ class Wipp:
             )
         ]
 
+    def create_entity(
+        self,
+        plural: str,
+        entity: WippEntity,
+        path_prefix: Union[str, bytes, os.PathLike] = "",
+        path_suffix: Union[str, bytes, os.PathLike] = "",
+        extra_query: dict = {},
+    ) -> WippEntity:
+        """Create a WIPP entity
+
+        Keyword arguments:
+        entity -- the entity object to be created
+        """
+
+        r = requests.post(
+            self.build_request_url(plural, path_prefix, path_suffix, extra_query),
+            headers=self._auth_headers,
+            json=entity.json,
+        )
+        if r.status_code == 201:
+            if plural == "imagesCollections":
+                return WippImageCollection(r.json())
+            elif plural == "images":
+                return WippImage(r.json())
+            elif plural == "csvCollections":
+                return WippCsvCollection(r.json())
+            elif plural == "csv":
+                return WippCsv(r.json())
+            elif plural == "genericDatas":
+                return WippGenericDataCollection(r.json())
+            elif plural == "genericFile":
+                return WippGenericDataFile(r.json())
+            elif plural == "plugins":
+                return WippPlugin(r.json())
+            else:
+                return WippEntity(r.json())
+        else:
+            print(r)
+            print(r.text)
+            return None
+
     ### Query methods
     # Specialized methods for entities
     def get_csv_collections(self) -> list[WippEntity]:
@@ -634,17 +675,7 @@ class Wipp:
         Keyword arguments:
         csv_collection -- WippCsvCollection object to create
         """
-        r = requests.post(
-            self.build_request_url("csvCollections"),
-            json=csv_collection.json,
-            headers=self._auth_headers,
-        )
-        if r.status_code == 201:
-            return WippCsvCollection(r.json())
-        else:
-            print(r)
-            print(r.text)
-            return None
+        return self.create_entity("csvCollections", csv_collection)
 
     def get_csv_collections_csv_files(self, collection_id: str) -> list[WippCsv]:
         """Get list of all CSV files in a WIPP CSV Collection"""
@@ -659,17 +690,12 @@ class Wipp:
 
     # Plugin methods
     def create_plugin(self, plugin: WippPlugin):
-        r = requests.post(
-            self.build_request_url("plugins"),
-            json=plugin.json,
-            headers=self._auth_headers,
-        )
-        if r.status_code == 201:
-            return WippPlugin(r.json())
-        else:
-            print(r)
-            print(r.text)
-            return None
+        """Create a new WIPP Plugin
+
+        Keyword arguments:
+        plugin -- WippPlugin object to create
+        """
+        return self.create_entity("plugins", plugin)
 
     def delete_plugin(self, plugin_id: str):
         r = requests.delete(
