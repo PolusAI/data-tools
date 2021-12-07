@@ -59,16 +59,16 @@ class WippImageCollection(WippAbstractCollection):
     def __init__(self, json):
         super().__init__(json)
 
-        self.imagesTotalSize = self.json["imagesTotalSize"]
-        self.importMethod = self.json["importMethod"]
-        self.metadataFilesTotalSize = self.json["metadataFilesTotalSize"]
-        self.notes = self.json["notes"]
-        self.numberImportingImages = self.json["numberImportingImages"]
-        self.numberOfImages = self.json["numberOfImages"]
-        self.numberOfImportErrors = self.json["numberOfImportErrors"]
-        self.numberOfMetadataFiles = self.json["numberOfMetadataFiles"]
-        self.pattern = self.json["pattern"]
-        self.sourceCatalog = self.json["sourceCatalog"]
+        self.imagesTotalSize = self.json.get("imagesTotalSize", None)
+        self.importMethod = self.json.get("importMethod", None)
+        self.metadataFilesTotalSize = self.json.get("metadataFilesTotalSize", None)
+        self.notes = self.json.get("notes", None)
+        self.numberImportingImages = self.json.get("numberImportingImages", None)
+        self.numberOfImages = self.json.get("numberOfImages", None)
+        self.numberOfImportErrors = self.json.get("numberOfImportErrors", None)
+        self.numberOfMetadataFiles = self.json.get("numberOfMetadataFiles", None)
+        self.pattern = self.json.get("pattern", None)
+        self.sourceCatalog = self.json.get("sourceCatalog", None)
 
         self.images = []
 
@@ -139,11 +139,11 @@ class WippGenericDataCollection(WippAbstractCollection):
     def __init__(self, json):
         super().__init__(json)
 
-        self.description: str = self.json["description"]
-        self.fileTotalSize: int = self.json["fileTotalSize"]
-        self.metadata: str = self.json["metadata"]
-        self.numberOfFiles: int = self.json["numberOfFiles"]
-        self.type: str = self.json["type"]
+        self.description: str = self.json.get("description", None)
+        self.fileTotalSize: int = self.json.get("fileTotalSize", None)
+        self.metadata: str = self.json.get("metadata", None)
+        self.numberOfFiles: int = self.json.get("numberOfFiles", None)
+        self.type: str = self.json.get("type", None)
 
         self.data = []
 
@@ -201,8 +201,29 @@ class WippPlugin(WippEntity):
 # TODO: Add more classes describing WIPP entities
 
 
+# Exception classes
 class MissingEnvironmentVariable(Exception):
     pass
+
+
+class WippAuthenticationError(Exception):
+    def __init__(self, message, errors):
+        super().__init__(message)
+        log.error(
+            "Authentication failed. Please provide a valid Keycloak token. If you have a Keycloak token, you might need to renew it"
+        )
+
+
+class WippForbiddenError(Exception):
+    def __init__(self, message, errors):
+        super().__init__(message)
+        log.error("You are not authorized to access this resource")
+
+
+class WippNotFoundError(Exception):
+    def __init__(self, message, errors):
+        super().__init__(message)
+        log.error("The requested resource was not found")
 
 
 class Wipp:
@@ -417,6 +438,7 @@ class Wipp:
             json=entity.json,
         )
         if r.status_code == 201:
+            log.info(f"Created {plural}: {r.json()['name']}")
             if plural == "imagesCollections":
                 return WippImageCollection(r.json())
             elif plural == "images":
@@ -433,9 +455,30 @@ class Wipp:
                 return WippPlugin(r.json())
             else:
                 return WippEntity(r.json())
+        elif r.status_code == 401:
+            raise WippAuthenticationError()
+        elif r.status_code == 403:
+            raise WippForbiddenError()
+        elif r.status_code == 404:
+            raise WippNotFoundError()
         else:
-            print(r)
-            print(r.text)
+            log.error(r)
+            log.error(r.text)
+            return None
+
+    def delete_entity(
+        self,
+        plural: str,
+        entity_id: str,
+        path_prefix: Union[str, bytes, os.PathLike] = "",
+        extra_query: dict = {},
+    ) -> None:
+        r = requests.delete(
+            self.build_request_url(plural, path_prefix, entity_id, extra_query),
+            headers=self._auth_headers,
+        )
+        if r.status_code == 200 or r.status_code == 204:
+            log.info(f"Deleted {plural} {entity_id}")
             return None
 
     ### Query methods
@@ -662,6 +705,24 @@ class Wipp:
         )
 
     # Image Collection methods
+    def create_image_collection(
+        self, image_collection: WippImageCollection
+    ) -> WippImageCollection:
+        """Create a new WIPP Image Collection
+        
+        Keyword arguments:
+        image_collection -- WIPP Image Collection object to create
+        """
+        return self.create_entity("imagesCollections", image_collection)
+
+    def delete_image_collection(self, image_collection_id: str) -> None:
+        """Delete a WIPP Image Collection
+
+        Keyword arguments:
+        image_collection_id -- WIPP Image Collection id to delete
+        """
+        self.delete_entity("imagesCollections", image_collection_id)
+
     def get_image_collections_images(self, collection_id: str) -> list[WippImage]:
         """Get list of all images in a WIPP Image Collection"""
         return self.get_entities(
@@ -677,11 +738,35 @@ class Wipp:
         """
         return self.create_entity("csvCollections", csv_collection)
 
+    def delete_csv_collection(self, csv_collection_id: str) -> None:
+        """Delete a WIPP CSV Collection
+
+        Keyword arguments:
+        csv_collection_id -- WIPP CSV Collection ID to delete
+        """
+        self.delete_entity("csvCollections", csv_collection_id)
+
     def get_csv_collections_csv_files(self, collection_id: str) -> list[WippCsv]:
         """Get list of all CSV files in a WIPP CSV Collection"""
         return self.get_entities("csv", path_prefix="csvCollections/" + collection_id)
 
     # Generic Data methods
+    def create_generic_data_collection(self, generic_data: WippGenericDataCollection):
+        """Create a new WIPP Generic Data
+        
+        Keyword arguments:
+        generic_data -- WippGenericData object to create
+        """
+        return self.create_entity("genericDatas", generic_data)
+
+    def delete_generic_data_collection(self, generic_data_id: str) -> None:
+        """Delete a WIPP Generic Data
+
+        Keyword arguments:
+        generic_data_id -- WIPP Generic Data Collection ID to delete
+        """
+        self.delete_entity("genericDatas", generic_data_id)
+
     def get_generic_data_files(self, generic_data_id: str) -> list[WippGenericDataFile]:
         """Get list of all files in a WIPP Generic Data"""
         return self.get_entities(
@@ -698,8 +783,9 @@ class Wipp:
         return self.create_entity("plugins", plugin)
 
     def delete_plugin(self, plugin_id: str):
-        r = requests.delete(
-            self.build_request_url("plugins/" + plugin_id), headers=self._auth_headers
-        )
-        if r.status_code == 204:
-            log.info("Plugin deleted")
+        """Delete a WIPP Plugin
+            
+        Keyword arguments:
+        plugin_id -- WIPP Plugin ID to delete
+        """
+        self.delete_entity("plugins", plugin_id)

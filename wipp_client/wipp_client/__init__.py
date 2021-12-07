@@ -13,4 +13,4 @@ def get_module_version():
     return __version__
 
 
-from .wipp import Wipp, WippEntity, WippCsvCollection, WippPlugin
+from .wipp import *
