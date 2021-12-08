@@ -6,11 +6,13 @@ import os
 import json
 import logging
 from types import resolve_bases
-from typing import Any, Tuple, Union
+from datetime import datetime
+from typing import Any, List, Tuple, Union, Optional
 from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
 
 # Third party
 import requests
+from pydantic import BaseModel
 
 # Relative
 
@@ -18,33 +20,39 @@ import requests
 
 log = logging.getLogger(__name__)
 
+
+def snake_case_to_lower_camel_case(string: str) -> str:
+    words = list(filter(None, string.split("_")))
+    return words[0] + "".join(word.capitalize() for word in words[1:])
+
+
 ###############################################################################
 
 
-class WippEntity:
+class WippEntity(BaseModel):
     """Class for holding generic WIPP Entity"""
 
-    def __init__(self, json):
-        self.json = json
+    class Config:
+        # Automatically convert lowerCamelCase from WIPP JSONs to snake_case in pydantic models
+        alias_generator = snake_case_to_lower_camel_case
+
+    def dict(self) -> dict:
+        """Convert pydantic model to WIPP JSON"""
+        return dict(
+            [(snake_case_to_lower_camel_case(k), v) for k, v in super().dict().items()]
+        )
 
 
 class WippAbstractCollection(WippEntity):
+    id: Optional[str]
+    name: str
+    creation_date: Optional[datetime]
+    locked: Optional[bool]
+    source_job: Optional[str]
+    # Only supported in the new version of the API
+    # owner: str
+    # publicly_shared: bool
     """Class for holding generic WIPP Collection"""
-
-    def __init__(self, json):
-        super().__init__(json)
-
-        self.id = self.json.get("id", None)
-        self.name = self.json["name"]
-        self.creationDate = self.json.get("creationDate", None)
-        self.locked = self.json.get(
-            "locked", None
-        )  # Only present in the old version of the API
-        self.sourceJob = self.json.get("sourceJob", None)
-
-        # Only supported in the new version of the API
-        # self.owner = self.json["owner"]
-        # self.publiclyShared = self.json["publiclyShared"]
 
     def __str__(self):
         return f"{self.id}\t{self.name}"
@@ -54,23 +62,17 @@ class WippAbstractCollection(WippEntity):
 
 
 class WippImageCollection(WippAbstractCollection):
+    images_total_size: Optional[int]
+    import_method: Optional[str]
+    metadata_files_total_size: Optional[int]
+    notes: Optional[str]
+    number_importing_images: Optional[int]
+    number_of_images: Optional[int]
+    number_of_import_errors: Optional[int]
+    number_of_metadata_files: Optional[int]
+    pattern: Optional[str]
+    source_catalog: Optional[str]
     """Class for holding WIPP Image Collection"""
-
-    def __init__(self, json):
-        super().__init__(json)
-
-        self.imagesTotalSize = self.json.get("imagesTotalSize", None)
-        self.importMethod = self.json.get("importMethod", None)
-        self.metadataFilesTotalSize = self.json.get("metadataFilesTotalSize", None)
-        self.notes = self.json.get("notes", None)
-        self.numberImportingImages = self.json.get("numberImportingImages", None)
-        self.numberOfImages = self.json.get("numberOfImages", None)
-        self.numberOfImportErrors = self.json.get("numberOfImportErrors", None)
-        self.numberOfMetadataFiles = self.json.get("numberOfMetadataFiles", None)
-        self.pattern = self.json.get("pattern", None)
-        self.sourceCatalog = self.json.get("sourceCatalog", None)
-
-        self.images = []
 
     def __iter__(self):
         for image in self.images:
@@ -78,36 +80,26 @@ class WippImageCollection(WippAbstractCollection):
 
 
 class WippImage(WippEntity):
+    file_name: str
+    original_file_name: Optional[str]
+    file_size: int
+    importing: Optional[bool]
+    import_error: Optional[str]
     """Class for holding WIPP Image"""
 
-    def __init__(self, json):
-        super().__init__(json)
-
-        self.fileName = self.json["fileName"]
-        self.originalFileName = self.json["originalFileName"]
-        self.fileSize = self.json["fileSize"]
-        self.importing = self.json["importing"]
-        self.importError = self.json["importError"]
-
     def __str__(self):
-        return f"{self.fileName}\t{self.fileSize}"
+        return f"{self.file_name}\t{self.file_size}"
 
     def __repr__(self):
         return str(self)
 
 
 class WippCsvCollection(WippAbstractCollection):
+    csv_total_size: Optional[int]
+    number_importing_csv: Optional[int]
+    number_of_csv_files: Optional[int]
+    number_of_import_errors: Optional[int]
     """Class for holding generic WIPP Collection"""
-
-    def __init__(self, json):
-        super().__init__(json)
-
-        self.csvTotalSize = self.json.get("csvTotalSize", None)
-        self.numberImportingCsv = self.json.get("numberImportingCsv", None)
-        self.numberOfCsvFiles = self.json.get("numberOfCsvFiles", None)
-        self.numberOfImportErrors = self.json.get("numberOfImportErrors", None)
-
-        self.csvs = []
 
     def __iter__(self):
         for csv in self.csvs:
@@ -115,16 +107,12 @@ class WippCsvCollection(WippAbstractCollection):
 
 
 class WippCsv(WippEntity):
+    file_name: str
+    original_file_name: Optional[str]
+    file_size: int
+    importing: Optional[bool]
+    import_error: Optional[str]
     """Class for holding WIPP CSV"""
-
-    def __init__(self, json):
-        super().__init__(json)
-
-        self.fileName = self.json["fileName"]
-        self.originalFileName = self.json["originalFileName"]
-        self.fileSize = self.json["fileSize"]
-        self.importing = self.json["importing"]
-        self.importError = self.json["importError"]
 
     def __str__(self):
         return f"{self.fileName}\t{self.fileSize}"
@@ -134,18 +122,12 @@ class WippCsv(WippEntity):
 
 
 class WippGenericDataCollection(WippAbstractCollection):
+    description: Optional[str]
+    file_total_size: Optional[int]
+    metadata: Optional[str]
+    number_of_files: Optional[int]
+    type: Optional[str]
     """Class for holding generic WIPP Collection"""
-
-    def __init__(self, json):
-        super().__init__(json)
-
-        self.description: str = self.json.get("description", None)
-        self.fileTotalSize: int = self.json.get("fileTotalSize", None)
-        self.metadata: str = self.json.get("metadata", None)
-        self.numberOfFiles: int = self.json.get("numberOfFiles", None)
-        self.type: str = self.json.get("type", None)
-
-        self.data = []
 
     def __iter__(self):
         for data in self.data:
@@ -153,43 +135,35 @@ class WippGenericDataCollection(WippAbstractCollection):
 
 
 class WippGenericDataFile(WippEntity):
+    file_name: str
+    original_file_name: Optional[str]
+    file_size: int
     """Class for holding WIPP Generic Data File"""
 
-    def __init__(self, json):
-        super().__init__(json)
-
-        self.fileName: str = self.json["fileName"]
-        self.originalFileName: str = self.json["originalFileName"]
-        self.fileSize: int = self.json["fileSize"]
-
     def __str__(self):
-        return f"{self.fileName}\t{self.fileSize}"
+        return f"{self.file_name}\t{self.file_size}"
 
     def __repr__(self):
         return str(self)
 
 
 class WippPlugin(WippEntity):
+    author: Optional[str]
+    citation: Optional[str]
+    container_id: str
+    creation_date: Optional[datetime]
+    description: str
+    id: Optional[str]
+    inputs = list
+    institution: Optional[str]
+    name: str
+    outputs: List
+    repository: Optional[str]
+    title: str
+    ui: list
+    version: str
+    website: Optional[str]
     """Class for holding WIPP Plugin"""
-
-    def __init__(self, json):
-        super().__init__(json)
-
-        self.author: str = self.json["author"]
-        self.citation: str = self.json["citation"]
-        self.container_id: str = self.json["containerId"]
-        self.creation_date: str = self.json.get("creationDate", None)
-        self.description: str = self.json["description"]
-        self.id: str = self.json.get("id", None)
-        self.inputs: list = self.json["inputs"]
-        self.institution: str = self.json["institution"]
-        self.name: str = self.json["name"]
-        self.outputs: list = self.json["outputs"]
-        self.repository: str = self.json["repository"]
-        self.title: str = self.json["title"]
-        self.ui: list = self.json["ui"]
-        self.version: str = self.json["version"]
-        self.website: str = self.json["website"]
 
     def __str__(self):
         return f"{self.id}\t{self.name}\t{self.version}"
@@ -276,7 +250,7 @@ class Wipp:
     ):
         """
         Build request URL for WIPP API
-        
+
         Keyword arguments:
         plural -- plural of the resource (such as "imagesCollections")
         path_suffix -- extra path to be added to the request URL (such as "search/findByNameContainingIgnoreCase")
@@ -366,21 +340,21 @@ class Wipp:
 
             # Parse into the base or child class (if implemented for the entity)
             if plural == "imagesCollections":
-                return [WippImageCollection(entity) for entity in entities_page]
+                return [WippImageCollection(**entity) for entity in entities_page]
             elif plural == "images":
-                return [WippImage(entity) for entity in entities_page]
+                return [WippImage(**entity) for entity in entities_page]
             elif plural == "csvCollections":
-                return [WippCsvCollection(entity) for entity in entities_page]
+                return [WippCsvCollection(**entity) for entity in entities_page]
             elif plural == "csv":
-                return [WippCsv(entity) for entity in entities_page]
+                return [WippCsv(**entity) for entity in entities_page]
             elif plural == "genericDatas":
-                return [WippGenericDataCollection(entity) for entity in entities_page]
+                return [WippGenericDataCollection(**entity) for entity in entities_page]
             elif plural == "genericFile":
-                return [WippGenericDataFile(entity) for entity in entities_page]
+                return [WippGenericDataFile(**entity) for entity in entities_page]
             elif plural == "plugins":
-                return [WippPlugin(entity) for entity in entities_page]
+                return [WippPlugin(**entity) for entity in entities_page]
             else:
-                return [WippEntity(entity) for entity in entities_page]
+                return [WippEntity(**entity) for entity in entities_page]
 
     def get_entities_all_pages(
         self,
@@ -406,7 +380,7 @@ class Wipp:
         path_suffix: Union[str, bytes, os.PathLike] = "",
         extra_query: dict = {},
     ) -> list[WippEntity]:
-        """Get list of all available WIPP Image Collection in JSON format"""
+        """Get list of all available WIPP entities"""
 
         return [
             entity
@@ -435,26 +409,27 @@ class Wipp:
         r = requests.post(
             self.build_request_url(plural, path_prefix, path_suffix, extra_query),
             headers=self._auth_headers,
-            json=entity.json,
+            json=entity.dict(),
         )
         if r.status_code == 201:
-            log.info(f"Created {plural}: {r.json()['name']}")
+            entity = r.json()
+            log.info(f"Created {plural}: {entity['name']}")
             if plural == "imagesCollections":
-                return WippImageCollection(r.json())
+                return WippImageCollection(**entity)
             elif plural == "images":
-                return WippImage(r.json())
+                return WippImage(**entity)
             elif plural == "csvCollections":
-                return WippCsvCollection(r.json())
+                return WippCsvCollection(**entity)
             elif plural == "csv":
-                return WippCsv(r.json())
+                return WippCsv(**entity)
             elif plural == "genericDatas":
-                return WippGenericDataCollection(r.json())
+                return WippGenericDataCollection(**entity)
             elif plural == "genericFile":
-                return WippGenericDataFile(r.json())
+                return WippGenericDataFile(**entity)
             elif plural == "plugins":
-                return WippPlugin(r.json())
+                return WippPlugin(**entity)
             else:
-                return WippEntity(r.json())
+                return WippEntity(**entity)
         elif r.status_code == 401:
             raise WippAuthenticationError()
         elif r.status_code == 403:
@@ -483,11 +458,11 @@ class Wipp:
 
     ### Query methods
     # Specialized methods for entities
-    def get_csv_collections(self) -> list[WippEntity]:
+    def get_csv_collections(self) -> list[WippCsvCollection]:
         """Get list of all available WIPP Csv Collection objects"""
         return self.get_entities("csvCollections")
 
-    def get_generic_datas(self) -> list[WippEntity]:
+    def get_generic_datas(self) -> list[WippGenericDataCollection]:
         """Get list of all available WIPP Generic Data objects"""
         return self.get_entities("genericDatas")
 
@@ -503,7 +478,7 @@ class Wipp:
         """Get list of all available WIPP Notebook objects"""
         return self.get_entities("notebooks")
 
-    def get_plugins(self) -> list[WippEntity]:
+    def get_plugins(self) -> list[WippPlugin]:
         """Get list of all available WIPP Plugin objects"""
         return self.get_entities("plugins")
 
@@ -536,9 +511,9 @@ class Wipp:
         return self.get_entities("workflows")
 
     # Search methods
-    def search_csv_collections(self, name) -> list[WippEntity]:
+    def search_csv_collections(self, name) -> list[WippCsvCollection]:
         """Get list of all found WIPP CSV Collection objects
-        
+
         Keyword arguments:
         name -- string to search in CSV Collection names
         """
@@ -548,9 +523,9 @@ class Wipp:
             extra_query={"name": name},
         )
 
-    def search_generic_datas(self, name) -> list[WippEntity]:
+    def search_generic_datas(self, name) -> list[WippGenericDataCollection]:
         """Get list of all found WIPP Generic Data objects
-        
+
         Keyword arguments:
         name -- string to search in Generic Data names
         """
@@ -562,7 +537,7 @@ class Wipp:
 
     def search_image_collections(self, name) -> list[WippImageCollection]:
         """Get list of all found WIPP Image Collection objects
-        
+
         Keyword arguments:
         name -- string to search in WIPP Image Collections names
         """
@@ -574,7 +549,7 @@ class Wipp:
 
     def search_jobs(self, name) -> list[WippEntity]:
         """Get list of all found WIPP Job objects
-        
+
         Keyword arguments:
         name -- string to search in WIPP Job names
         """
@@ -586,7 +561,7 @@ class Wipp:
 
     def search_notebooks(self, name) -> list[WippEntity]:
         """Get list of all found WIPP Notebook objects
-        
+
         Keyword arguments:
         name -- string to search in WIPP Notebook names
         """
@@ -596,9 +571,9 @@ class Wipp:
             extra_query={"name": name},
         )
 
-    def search_plugins(self, name) -> list[WippEntity]:
+    def search_plugins(self, name) -> list[WippPlugin]:
         """Get list of all found WIPP Plugin objects
-        
+
         Keyword arguments:
         name -- string to search in Csv Collection names
         """
@@ -610,7 +585,7 @@ class Wipp:
 
     def search_pyramid_annotations(self, name: str) -> list[WippEntity]:
         """Get list of all found WIPP Pyramid Annotation objects
-        
+
         Keyword arguments:
         name -- string to search in Pyramid Annotations names
         """
@@ -622,7 +597,7 @@ class Wipp:
 
     def search_pyramids(self, name: str) -> list[WippEntity]:
         """Get list of all found WIPP Pyramid objects
-        
+
         Keyword arguments:
         name -- string to search in Pyramids names
         """
@@ -634,7 +609,7 @@ class Wipp:
 
     def search_pyramids(self, name: str) -> list[WippEntity]:
         """Get list of all found WIPP Pyramid objects
-        
+
         Keyword arguments:
         name -- string to search in Pyramids names
         """
@@ -646,7 +621,7 @@ class Wipp:
 
     def search_stitching_vectors(self, name: str) -> list[WippEntity]:
         """Get list of all found WIPP Stitching Vector objects
-        
+
         Keyword arguments:
         name -- string to search in Stitching Vectors names
         """
@@ -658,7 +633,7 @@ class Wipp:
 
     def search_tensorboard_logs(self, name: str) -> list[WippEntity]:
         """Get list of all found WIPP Tensorboard Log objects
-        
+
         Keyword arguments:
         name -- string to search in Tensorboard Logs names
         """
@@ -670,7 +645,7 @@ class Wipp:
 
     def search_tensorflow_models(self, name: str) -> list[WippEntity]:
         """Get list of all found WIPP Tensorflow Model objects
-        
+
         Keyword arguments:
         name -- string to search in Tensorflow Models names
         """
@@ -682,7 +657,7 @@ class Wipp:
 
     def search_visualizations(self, name: str) -> list[WippEntity]:
         """Get list of all found WIPP Visualization objects
-        
+
         Keyword arguments:
         name -- string to search in Visualizations names
         """
@@ -694,7 +669,7 @@ class Wipp:
 
     def search_workflows(self, name: str) -> list[WippEntity]:
         """Get list of all found WIPP Workflow objects
-        
+
         Keyword arguments:
         name -- string to search in Workflows names
         """
@@ -709,7 +684,7 @@ class Wipp:
         self, image_collection: WippImageCollection
     ) -> WippImageCollection:
         """Create a new WIPP Image Collection
-        
+
         Keyword arguments:
         image_collection -- WIPP Image Collection object to create
         """
@@ -732,7 +707,7 @@ class Wipp:
     # CSV Collection methods
     def create_csv_collection(self, csv_collection: WippCsvCollection):
         """Create a new WIPP CSV Collection
-        
+
         Keyword arguments:
         csv_collection -- WippCsvCollection object to create
         """
@@ -753,7 +728,7 @@ class Wipp:
     # Generic Data methods
     def create_generic_data_collection(self, generic_data: WippGenericDataCollection):
         """Create a new WIPP Generic Data
-        
+
         Keyword arguments:
         generic_data -- WippGenericData object to create
         """
@@ -784,7 +759,7 @@ class Wipp:
 
     def delete_plugin(self, plugin_id: str):
         """Delete a WIPP Plugin
-            
+
         Keyword arguments:
         plugin_id -- WIPP Plugin ID to delete
         """

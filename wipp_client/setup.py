@@ -27,7 +27,8 @@ dev_requirements = [
 ]
 
 requirements = [
-    "requests>=2.0"
+    "requests>=2.0",
+    "pydantic>=1.8.2",
 ]
 
 extra_requirements = {
