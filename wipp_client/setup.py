@@ -27,7 +27,8 @@ dev_requirements = [
 ]
 
 requirements = [
-    "requests>=2.0"
+    "requests>=2.0",
+    "pydantic>=1.8.2",
 ]
 
 extra_requirements = {
@@ -66,6 +67,6 @@ setup(
     url="https://github.com/polusai/wipp_client",
     # Do not edit this string manually, always use bumpversion
     # Details in CONTRIBUTING.rst
-    version="0.1.0",
+    version="0.2.0",
     zip_safe=False,
 )
