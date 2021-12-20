@@ -64,7 +64,7 @@ setup(
     python_requires=">=3.7",
     setup_requires=setup_requirements,
     extras_require=extra_requirements,
-    url="https://github.com/polusai/wipp_client",
+    url="https://github.com/PolusAI/data-tools/tree/main/wipp_client",
     # Do not edit this string manually, always use bumpversion
     # Details in CONTRIBUTING.rst
     version="0.2.0",
