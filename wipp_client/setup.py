@@ -67,6 +67,6 @@ setup(
     url="https://github.com/PolusAI/data-tools/tree/main/wipp_client",
     # Do not edit this string manually, always use bumpversion
     # Details in CONTRIBUTING.rst
-    version="0.2.0",
+    version="0.2.1",
     zip_safe=False,
 )
