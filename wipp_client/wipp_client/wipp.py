@@ -347,7 +347,7 @@ class Wipp:
                 return [WippCsvCollection(**entity) for entity in entities_page]
             elif plural == "csv":
                 return [WippCsv(**entity) for entity in entities_page]
-            elif plural == "genericDatas":
+            elif plural == "genericDataCollections":
                 return [WippGenericDataCollection(**entity) for entity in entities_page]
             elif plural == "genericFile":
                 return [WippGenericDataFile(**entity) for entity in entities_page]
@@ -422,7 +422,7 @@ class Wipp:
                 return WippCsvCollection(**entity)
             elif plural == "csv":
                 return WippCsv(**entity)
-            elif plural == "genericDatas":
+            elif plural == "genericDataCollections":
                 return WippGenericDataCollection(**entity)
             elif plural == "genericFile":
                 return WippGenericDataFile(**entity)
@@ -462,9 +462,9 @@ class Wipp:
         """Get list of all available WIPP Csv Collection objects"""
         return self.get_entities("csvCollections")
 
-    def get_generic_datas(self) -> list[WippGenericDataCollection]:
+    def get_generic_data_collections(self) -> list[WippGenericDataCollection]:
         """Get list of all available WIPP Generic Data objects"""
-        return self.get_entities("genericDatas")
+        return self.get_entities("genericDataCollections")
 
     def get_image_collections(self) -> list[WippImageCollection]:
         """Get list of all available WIPP Image Collection objects"""
@@ -523,14 +523,14 @@ class Wipp:
             extra_query={"name": name},
         )
 
-    def search_generic_datas(self, name) -> list[WippGenericDataCollection]:
-        """Get list of all found WIPP Generic Data objects
+    def search_generic_data_collections(self, name) -> list[WippGenericDataCollection]:
+        """Get list of all found WIPP Generic Data Collection objects
 
         Keyword arguments:
-        name -- string to search in Generic Data names
+        name -- string to search in Generic Data Collection names
         """
         return self.get_entities(
-            "genericDatas",
+            "genericDataCollections",
             path_suffix="search/findByNameContainingIgnoreCase",
             extra_query={"name": name},
         )
@@ -725,27 +725,27 @@ class Wipp:
         """Get list of all CSV files in a WIPP CSV Collection"""
         return self.get_entities("csv", path_prefix="csvCollections/" + collection_id)
 
-    # Generic Data methods
-    def create_generic_data_collection(self, generic_data: WippGenericDataCollection):
-        """Create a new WIPP Generic Data
+    # Generic Data Collection methods
+    def create_generic_data_collection(self, generic_data_collection: WippGenericDataCollection):
+        """Create a new WIPP Generic Data Collection
 
         Keyword arguments:
         generic_data -- WippGenericData object to create
         """
-        return self.create_entity("genericDatas", generic_data)
+        return self.create_entity("genericDataCollections", generic_data_collection)
 
-    def delete_generic_data_collection(self, generic_data_id: str) -> None:
-        """Delete a WIPP Generic Data
+    def delete_generic_data_collection(self, generic_data_collection_id: str) -> None:
+        """Delete a WIPP Generic Data Collection
 
         Keyword arguments:
         generic_data_id -- WIPP Generic Data Collection ID to delete
         """
-        self.delete_entity("genericDatas", generic_data_id)
+        self.delete_entity("genericDataCollections", generic_data_collection_id)
 
-    def get_generic_data_files(self, generic_data_id: str) -> list[WippGenericDataFile]:
-        """Get list of all files in a WIPP Generic Data"""
+    def get_generic_data_files(self, generic_data_collection_id: str) -> list[WippGenericDataFile]:
+        """Get list of all files in a WIPP Generic Data Collection"""
         return self.get_entities(
-            "genericFile", path_prefix="genericDatas/" + generic_data_id
+            "genericFile", path_prefix="genericDataCollections/" + generic_data_collection_id
         )
 
     # Plugin methods
