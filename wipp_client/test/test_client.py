@@ -50,6 +50,14 @@ w.delete_image_collection(nic.id)
 for c in w.get_image_collections():
     print(c)
 
+# Get Stitching Vector Time Slices
+sv_time_slices = w.get_stitching_vector_time_slices("<stitching_vector_id>")
+print(f"Stitching Vector Time Slices: {sv_time_slices}")
+
+# Get Pyramid Annotation Time Slices
+pyramid_annotation_time_slices = w.get_pyramid_annotation_time_slices("<pyramid_annotation_id>")
+print(f"Pyramid Annotation Time Slices: {pyramid_annotation_time_slices}")
+
 # Create CSV collection
 csv_collection = WippCsvCollection(name="Test CSV collection")
 created_csv_collection = w.create_csv_collection(csv_collection)

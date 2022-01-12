@@ -94,6 +94,71 @@ class WippImage(WippEntity):
         return str(self)
 
 
+class WippStitchingVector(WippEntity):
+    id: Optional[str]
+    name: str
+    creation_date: Optional[datetime]
+    source_job: Optional[str]
+    pattern: Optional[str]
+    note: Optional[str]
+    number_of_time_slices: Optional[int]
+    tiles_pattern: Optional[str]
+    """Class for holding WIPP Stitching Vector"""
+
+    def __str__(self):
+        return f"{self.id}\t{self.name}"
+
+    def __repr__(self):
+        return str(self)
+
+    def __iter__(self):
+        for svts in self.stitchingVectorTimeSlices:
+            yield svts
+
+
+class WippStitchingVectorTimeSlice(WippEntity):
+    slice_number: int
+    error_message: Optional[str]
+    """Class for holding WIPP Stitiching Vector Time Slice"""
+
+    def __str__(self):
+        return f"{self.slice_number}"
+
+    def __repr__(self):
+        return str(self)
+
+
+class WippPyramidAnnotation(WippEntity):
+    id: Optional[str]
+    name: str
+    creation_date: Optional[datetime]
+    source_job: Optional[str]
+    note: Optional[str]
+    number_of_time_slices: Optional[int]
+    """Class for holding WIPP Pyramid Annotation"""
+
+    def __str__(self):
+        return f"{self.id}\t{self.name}"
+
+    def __repr__(self):
+        return str(self)
+
+    def __iter__(self):
+        for pats in self.pyramidAnnotationsTimeSlices:
+            yield pats
+
+
+class WippPyramidAnnotationTimeSlice(WippEntity):
+    slice_number: int
+    """Class for holding WIPP Pyramid Annotation Time Slice"""
+
+    def __str__(self):
+        return f"{self.slice_number}"
+
+    def __repr__(self):
+        return str(self)
+
+
 class WippCsvCollection(WippAbstractCollection):
     csv_total_size: Optional[int]
     number_importing_csv: Optional[int]
@@ -335,6 +400,11 @@ class Wipp:
                 key = "csvs"
             elif plural == "genericFile":
                 key = "genericFiles"
+            elif plural == "timeSlices":
+                if path_prefix.split("/")[0] == "stitchingVectors":
+                    key = "stitchingVectorTimeSlices"
+                elif path_prefix.split("/")[0] == "pyramidAnnotations":
+                    key = "pyramidAnnotationTimeSlices"
 
             entities_page = r.json()["_embedded"][key]
 
@@ -347,6 +417,15 @@ class Wipp:
                 return [WippCsvCollection(**entity) for entity in entities_page]
             elif plural == "csv":
                 return [WippCsv(**entity) for entity in entities_page]
+            elif plural == "stitchingVectors":
+                return [WippStitchingVector(**entity) for entity in entities_page]
+            elif plural == "pyramidAnnotations":
+                return [WippPyramidAnnotation(**entity) for entity in entities_page]
+            elif plural == "timeSlices":
+                if key == "stitchingVectorTimeSlices":
+                    return [WippStitchingVectorTimeSlice(**entity) for entity in entities_page]
+                if key == "pyramidAnnotationTimeSlices":
+                    return [WippPyramidAnnotationTimeSlice(**entity) for entity in entities_page]
             elif plural == "genericDatas":
                 return [WippGenericDataCollection(**entity) for entity in entities_page]
             elif plural == "genericFile":
@@ -702,6 +781,20 @@ class Wipp:
         """Get list of all images in a WIPP Image Collection"""
         return self.get_entities(
             "images", path_prefix="imagesCollections/" + collection_id
+        )
+    
+    # Stitching Vector methods
+    def get_stitching_vector_time_slices(self, stitching_vector_id: str) -> list[WippStitchingVectorTimeSlice]:
+        """Get list of all time slices in a WIPP Stitching Vector"""
+        return self.get_entities(
+            "timeSlices", path_prefix="stitchingVectors/" + stitching_vector_id
+        )
+
+    # Pyramid Annotations methods
+    def get_pyramid_annotation_time_slices(self, pyramid_annotation_id: str) -> list[WippPyramidAnnotationTimeSlice]:
+        """Get list of all time slices in a WIPP Pyramid Annotation"""
+        return self.get_entities(
+            "timeSlices", path_prefix="pyramidAnnotations/" + pyramid_annotation_id
         )
 
     # CSV Collection methods
