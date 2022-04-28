@@ -25,7 +25,7 @@ token = keycloak_openid.token("<username>", "<password>")
 
 # Test that token is valid in Keycloak by getting some information about the user
 userinfo = keycloak_openid.userinfo(token["access_token"])
-print(f"Keycloak user: {userinfo['name']}")
+print(f"Keycloak user: {userinfo['preferred_username']}")
 
 
 # Create WIPP client
@@ -66,17 +66,19 @@ for c in w.get_csv_collections():
     print(c)
 
 # Create Generic Data Collection (does not work in API yet)
-# generic_data_collection = WippGenericDataCollection(name = "Test Generic Data Collection")
+generic_data_collection = WippGenericDataCollection(name = "Test Generic Data Collection")
+created_generic_data_collection = w.create_generic_data_collection(generic_data_collection)
 
-# created_generic_data_collection = w.create_generic_data_collection(generic_data_collection)
+print(f"Created Generic Data Collection: {created_generic_data_collection.id}")
 
-# print(created_generic_data_collection.id)
+for c in w.get_generic_data_collections():
+    print(c)
 
-# print(w.get_generic_data_collections())
+print(f"Deleted Generic Data: {created_generic_data_collection.id}")
+w.delete_generic_data_collection(created_generic_data_collection.id)
 
-# w.delete_generic_data_collection(created_generic_data_collection.id)
-
-# print(w.get_generic_data_collections())
+for c in w.get_generic_data_collections():
+    print(c)
 
 # Crerate plugin object
 plugin = {
