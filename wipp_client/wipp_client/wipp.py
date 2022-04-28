@@ -30,17 +30,15 @@ def snake_case_to_lower_camel_case(string: str) -> str:
 
 
 class WippEntity(BaseModel):
-    """Class for holding generic WIPP Entity"""
+    """Class for holding generic WIPP Entity
+    When dict() or json() is need in WIPP format, call
+    .dict(by_alias=True)
+    .json(by_alias=True)
+    """
 
     class Config:
         # Automatically convert lowerCamelCase from WIPP JSONs to snake_case in pydantic models
         alias_generator = snake_case_to_lower_camel_case
-
-    def dict(self) -> dict:
-        """Convert pydantic model to WIPP JSON"""
-        return dict(
-            [(snake_case_to_lower_camel_case(k), v) for k, v in super().dict().items()]
-        )
 
 
 class WippAbstractCollection(WippEntity):
@@ -409,7 +407,7 @@ class Wipp:
         r = requests.post(
             self.build_request_url(plural, path_prefix, path_suffix, extra_query),
             headers=self._auth_headers,
-            json=entity.dict(),
+            json=entity.dict(by_alias=True),
         )
         if r.status_code == 201:
             entity = r.json()
